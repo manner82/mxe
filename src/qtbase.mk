@@ -44,7 +44,7 @@ define $(PKG)_BUILD
             $(if $(BUILD_STATIC), -static,)$(if $(BUILD_SHARED), -shared,) \
             -prefix '$(PREFIX)/$(TARGET)/qt5' \
             -no-icu \
-            -opengl desktop \
+            -opengl dynamic \
             -no-glib \
             -accessibility \
             -nomake examples \
@@ -71,6 +71,7 @@ define $(PKG)_BUILD
 
     $(MAKE) -C '$(1)' -j '$(JOBS)'
     rm -rf '$(PREFIX)/$(TARGET)/qt5'
+
     $(MAKE) -C '$(1)' -j 1 install
     ln -sf '$(PREFIX)/$(TARGET)/qt5/bin/qmake' '$(PREFIX)/bin/$(TARGET)'-qmake-qt5
 

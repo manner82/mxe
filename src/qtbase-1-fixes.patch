@@ -63,3 +63,103 @@ index 0202f17b21..1418a3bbee 100644
 -- 
 2.20.1
 
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Robert Manner <robert.manner@balabit.com>
+Date: Sun, 21 Jul 2019 13:23:57 +0200
+Subject: [PATCH 3/5] 3rdparty/angle/glslang.l: fix different symbol name for
+ yyerror
+
+
+diff --git a/src/3rdparty/angle/src/compiler/translator/glslang.l b/src/3rdparty/angle/src/compiler/translator/glslang.l
+index 1111111..2222222 100644
+--- a/src/3rdparty/angle/src/compiler/translator/glslang.l
++++ b/src/3rdparty/angle/src/compiler/translator/glslang.l
+@@ -612,6 +612,10 @@ void yyerror(YYLTYPE* lloc, TParseContext* context, void *scanner, const char* r
+     context->error(*lloc, reason, yyget_text(scanner));
+ }
+ 
++void glslangerror(YYLTYPE* lloc, TParseContext* context, void *scanner, const char* reason) {
++    yyerror(lloc, context, scanner, reason);
++}
++
+ int int_constant(TParseContext *context) {
+     struct yyguts_t* yyg = (struct yyguts_t*) context->getScanner();
+ 
+
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Robert Manner <robert.manner@balabit.com>
+Date: Sun, 21 Jul 2019 13:27:13 +0200
+Subject: [PATCH 4/5] angle/compiler/translator.pro: replace flex/bison
+ compilers
+
+with the common qt provided lex yacc modules, so it works with the linux
+tools.
+
+diff --git a/src/angle/src/compiler/translator.pro b/src/angle/src/compiler/translator.pro
+index 1111111..2222222 100644
+--- a/src/angle/src/compiler/translator.pro
++++ b/src/angle/src/compiler/translator.pro
+@@ -192,33 +192,10 @@ SOURCES += \
+     $$ANGLE_DIR/src/compiler/translator/WrapSwitchStatementsInBlocks.cpp \
+     $$ANGLE_DIR/src/third_party/compiler/ArrayBoundsClamper.cpp
+ 
++CONFIG += lex
++QMAKE_MOD_LEX = "_lex"
++LEXSOURCES = $$FLEX_SOURCES
+ 
+-# NOTE: 'flex' and 'bison' can be found in qt5/gnuwin32/bin
+-flex.commands = $$addGnuPath(flex) --noline --nounistd --outfile=${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME}
+-flex.output = $${BUILDSUBDIR}${QMAKE_FILE_BASE}_lex.cpp
+-flex.input = FLEX_SOURCES
+-flex.dependency_type = TYPE_C
+-flex.variable_out = GENERATED_SOURCES
+-QMAKE_EXTRA_COMPILERS += flex
+-
+-defineReplace(myDirName) { return($$dirname(1)) }
+-bison.commands = $$addGnuPath(bison) --no-lines --skeleton=yacc.c --defines=${QMAKE_FILE_OUT} \
+-                --output=${QMAKE_FUNC_FILE_OUT_myDirName}$$QMAKE_DIR_SEP${QMAKE_FILE_OUT_BASE}.cpp \
+-                ${QMAKE_FILE_NAME}$$escape_expand(\\n\\t) \
+-                @echo // EOF>>${QMAKE_FUNC_FILE_OUT_myDirName}$$QMAKE_DIR_SEP${QMAKE_FILE_OUT_BASE}.cpp
+-bison.output = $${BUILDSUBDIR}${QMAKE_FILE_BASE}_tab.h
+-bison.input = BISON_SOURCES
+-bison.dependency_type = TYPE_C
+-bison.variable_out = GENERATED_SOURCES
+-QMAKE_EXTRA_COMPILERS += bison
+-
+-# This is a dummy compiler to work around the fact that an extra compiler can only
+-# have one output file even if the command generates two.
+-MAKEFILE_NOOP_COMMAND = @echo -n
+-msvc: MAKEFILE_NOOP_COMMAND = @echo >NUL
+-bison_impl.output = $${BUILDSUBDIR}${QMAKE_FILE_BASE}_tab.cpp
+-bison_impl.input = BISON_SOURCES
+-bison_impl.commands = $$MAKEFILE_NOOP_COMMAND
+-bison_impl.depends = $${BUILDSUBDIR}${QMAKE_FILE_BASE}_tab.h
+-bison_impl.variable_out = GENERATED_SOURCES
+-QMAKE_EXTRA_COMPILERS += bison_impl
++CONFIG += yacc
++QMAKE_MOD_YACC = "_tab"
++YACCSOURCES = $$BISON_SOURCES
+
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Robert Manner <robert.manner@balabit.com>
+Date: Sun, 21 Jul 2019 13:30:19 +0200
+Subject: [PATCH 5/5] gui/configure.pri: fxc.exe can also be used from PATH
+ during a mingw build
+
+
+diff --git a/src/gui/configure.pri b/src/gui/configure.pri
+index 1111111..2222222 100644
+--- a/src/gui/configure.pri
++++ b/src/gui/configure.pri
+@@ -24,9 +24,8 @@ defineTest(qtConfLibrary_freetype) {
+ # DXSDK_DIR variable. Starting with Windows Kit 8, it is included in
+ # the Windows SDK.
+ defineTest(qtConfTest_fxc) {
+-    !mingw {
+-        fxc = $$qtConfFindInPath("fxc.exe")
+-    } else {
++    fxc = $$qtConfFindInPath("fxc.exe")
++    isEmpty(fxc) {
+         equals(QMAKE_HOST.arch, x86_64): \
+             fns = x64/fxc.exe
+         else: \
